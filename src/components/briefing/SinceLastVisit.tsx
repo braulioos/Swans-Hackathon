@@ -12,7 +12,7 @@ export function SinceLastVisit({ digest }: { digest: CaseDigest }) {
 
   if (fresh.length === 0) {
     return (
-      <p className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-100 px-4 py-2 text-sm text-slate-600">
+      <p id="changes" className="flex scroll-mt-24 flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-100 px-4 py-2 text-sm text-slate-600">
         <span>Nothing new since your last visit on {formatDate(digest.lastViewedAt)}.</span>
         <a href="?since=30" className="text-xs font-medium text-blue-700 hover:underline">
           Show the last 30 days
@@ -21,11 +21,12 @@ export function SinceLastVisit({ digest }: { digest: CaseDigest }) {
     );
   }
   return (
-    <section className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+    <section id="changes" className="scroll-mt-24 rounded-2xl border border-blue-200 bg-blue-50 p-4">
       <h2 className="flex items-center gap-2 text-sm font-semibold text-blue-900">
         <Sparkles className="size-4" aria-hidden />
         {heading}
       </h2>
+      <p className="text-xs text-blue-800">What changed while you were away, and what each change means for the case (→).</p>
       <ul className="mt-2 space-y-2">
         {fresh.map((e) => (
           <li key={e.id} className="text-sm text-blue-950">

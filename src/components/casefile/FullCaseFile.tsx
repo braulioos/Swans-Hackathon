@@ -16,8 +16,15 @@ export function FullCaseFile({ digest }: { digest: CaseDigest }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("Events");
 
+  // "#case-file" opens it; "#case-file-tasks" (from the Needs attention links) opens it on the Tasks tab.
   useEffect(() => {
-    const sync = () => window.location.hash === "#case-file" && setOpen(true);
+    const sync = () => {
+      const hash = window.location.hash;
+      if (!hash.startsWith("#case-file")) return;
+      setOpen(true);
+      if (hash === "#case-file-tasks") setTab("Tasks");
+      requestAnimationFrame(() => document.getElementById("case-file")?.scrollIntoView({ behavior: "smooth" }));
+    };
     sync();
     window.addEventListener("hashchange", sync);
     return () => window.removeEventListener("hashchange", sync);
@@ -46,7 +53,8 @@ export function FullCaseFile({ digest }: { digest: CaseDigest }) {
         <span>
           <span className="block text-base font-semibold text-slate-900">Full case file</span>
           <span className="text-xs text-slate-500">
-            Everything, unfiltered · {digest.timeline.length} events · {digest.quests.length} tasks · {allSources.length} sources
+            Click to open everything, unfiltered: {digest.timeline.length} events, {digest.quests.length} open tasks & deadlines, providers, and{" "}
+            {allSources.length} source notes, emails & documents
           </span>
         </span>
         <ChevronDown className={`size-5 text-slate-500 transition ${open ? "rotate-180" : ""}`} />

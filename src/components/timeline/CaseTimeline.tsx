@@ -23,8 +23,8 @@ interface Props {
 }
 
 const LANES = 3;
-const LANE_HEIGHT = 30;
-const AXIS_Y = 104;
+const LANE_HEIGHT = 24;
+const AXIS_Y = 56;
 
 const DOT_SIZE = { milestone: "size-5", key: "size-3.5", routine: "size-2.5" } as const;
 
@@ -101,24 +101,55 @@ export function CaseTimeline({ events, start, end, stageHistory = [], lastViewed
   const trackHeight = AXIS_Y + LANES * LANE_HEIGHT + 28;
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-base font-semibold text-slate-900">Case timeline</h2>
-          <p className="text-xs text-slate-500">Hover a dot for a quick look · click to pin it · ← → to step through</p>
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" aria-labelledby="h-timeline">
+      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
+        <div className="min-w-[260px] flex-1">
+          <h2 id="h-timeline" className="text-base font-semibold text-slate-900">
+            Case timeline
+          </h2>
+          <p className="text-xs text-slate-500">
+            {compact
+              ? "Hover a dot to preview an update · click it for details"
+              : "Hover a dot to preview · click for details & sources · dashed line = your last visit"}
+          </p>
         </div>
         {!compact && (
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex rounded-lg bg-slate-100 p-0.5 text-xs font-medium" role="group" aria-label="Zoom">
-              {(["story", "everything"] as const).map((z) => (
+          <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="font-semibold text-slate-500">View:</span>
+              <div className="inline-flex rounded-lg bg-slate-100 p-0.5 font-medium" role="group" aria-label="Zoom level">
+                {(
+                  [
+                    ["story", "Story", "Only the turning points and key events"],
+                    ["everything", "Everything", "Every event, on a wider scrollable track"],
+                  ] as const
+                ).map(([z, label, hint]) => (
+                  <button
+                    key={z}
+                    type="button"
+                    onClick={() => setZoom(z)}
+                    aria-pressed={zoom === z}
+                    title={hint}
+                    className="rounded-md px-2.5 py-1 text-slate-600 aria-pressed:bg-white aria-pressed:text-slate-900 aria-pressed:shadow-sm"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="font-semibold text-slate-500">Show:</span>
+              {(Object.keys(CATEGORY_STYLE) as EventCategory[]).map((c) => (
                 <button
-                  key={z}
+                  key={c}
                   type="button"
-                  onClick={() => setZoom(z)}
-                  aria-pressed={zoom === z}
-                  className="rounded-md px-3 py-1 capitalize text-slate-600 aria-pressed:bg-white aria-pressed:text-slate-900 aria-pressed:shadow-sm"
+                  onClick={() => toggleCat(c)}
+                  aria-pressed={!hiddenCats.has(c)}
+                  title={`${hiddenCats.has(c) ? "Show" : "Hide"} ${CATEGORY_STYLE[c].label.toLowerCase()} events`}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 ring-1 transition aria-[pressed=false]:opacity-40 ${CATEGORY_STYLE[c].chip}`}
                 >
-                  {z}
+                  <span className={`size-2 rounded-full ${CATEGORY_STYLE[c].dot}`} />
+                  {CATEGORY_STYLE[c].label}
                 </button>
               ))}
             </div>
@@ -127,33 +158,17 @@ export function CaseTimeline({ events, start, end, stageHistory = [], lastViewed
                 type="button"
                 onClick={() => setNewOnly((v) => !v)}
                 aria-pressed={newOnly}
-                className="rounded-lg px-3 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-200 aria-pressed:bg-blue-600 aria-pressed:text-white"
+                title="Show only what happened since you last opened this case"
+                className="rounded-lg px-2.5 py-1 font-semibold text-blue-700 ring-1 ring-blue-300 aria-pressed:bg-blue-600 aria-pressed:text-white"
               >
-                New since last visit · {newCount}
+                {newOnly ? "Showing only new" : `Only new since last visit (${newCount})`}
               </button>
             )}
           </div>
         )}
       </div>
 
-      {!compact && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {(Object.keys(CATEGORY_STYLE) as EventCategory[]).map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => toggleCat(c)}
-              aria-pressed={!hiddenCats.has(c)}
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs ring-1 transition aria-[pressed=false]:opacity-40 ${CATEGORY_STYLE[c].chip}`}
-            >
-              <span className={`size-2 rounded-full ${CATEGORY_STYLE[c].dot}`} />
-              {CATEGORY_STYLE[c].label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="mt-2 overflow-x-auto pb-1" onKeyDown={onKeyDown}>
+      <div className={`mt-1 pb-1 ${zoom === "everything" && !compact ? "overflow-x-auto" : "overflow-x-auto lg:overflow-visible"}`} onKeyDown={onKeyDown}>
         <div
           className="relative"
           style={{ height: trackHeight, minWidth: zoom === "everything" && !compact ? 1400 : 640 }}
@@ -179,11 +194,12 @@ export function CaseTimeline({ events, start, end, stageHistory = [], lastViewed
           <div className="absolute left-[2%] right-[3%] h-0.5 rounded bg-slate-200" style={{ top: AXIS_Y }} />
 
           {lastViewedAt && !compact && (
-            <div className="absolute bottom-6 border-l-2 border-dashed border-blue-400" style={{ left: `${pct(lastViewedAt)}%`, top: 22 }}>
-              <span className="absolute -left-1 top-6 -translate-x-full whitespace-nowrap rounded bg-blue-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                Your last visit
-              </span>
-            </div>
+            <div
+              className="absolute bottom-6 border-l-2 border-dashed border-blue-400"
+              style={{ left: `${pct(lastViewedAt)}%`, top: 18 }}
+              title={`Your last visit: ${formatDate(lastViewedAt)}`}
+              aria-hidden
+            />
           )}
 
           {years.map((y) => (
@@ -244,7 +260,7 @@ export function CaseTimeline({ events, start, end, stageHistory = [], lastViewed
           <div className="min-w-0 flex-1">
             <p className="text-xs text-slate-500">
               {formatDate(pinned.date)} ·{" "}
-              <span className={`rounded-full px-1.5 py-0.5 ring-1 ${CATEGORY_STYLE[pinned.category].chip}`}>{CATEGORY_STYLE[pinned.category].label}</span>
+              <span>{CATEGORY_STYLE[pinned.category].label}</span>
             </p>
             <p className="mt-1 font-semibold text-slate-900">{pinned.title}</p>
             <p className="text-sm text-slate-700">{pinned.summary}</p>

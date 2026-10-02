@@ -4,7 +4,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import type { CaseDigest, Fact, Kpi, NextMove, Provider, Quest, SourceRef, Stage, TimelineEvent } from "@/lib/types";
+import type { CaseDigest, CaseFact, Fact, Kpi, MoneyFigures, NextMove, Provider, Quest, SourceRef, Stage, TimelineEvent } from "@/lib/types";
+import { formatDate } from "@/lib/format";
 
 // Digest pipeline: synced Clio items (SQLite) -> one Claude call -> validated CaseDigest -> SQLite.
 // Numbers that exist as data (KPIs, tasks, providers) are computed in code, not by the model.
@@ -186,6 +187,62 @@ function fieldSource(f: CustomField | undefined, sources: Map<string, SourceRef>
   return s ? [s] : [];
 }
 
+// Firm costs only: medical charges logged as expenses are the client's bills, not firm spend.
+function firmExpenses(items: ItemRow[]) {
+  const expenses = items
+    .filter((i) => i.kind === "expense")
+    .map((i) => JSON.parse(i.raw) as Raw)
+    .filter((e) => !text(e.note).startsWith("Medical treatment charges"));
+  const spend = expenses.reduce((sum, e) => sum + (Number(e.total) || Number(e.price) * Number(e.quantity || 1) || 0), 0);
+  return { expenses, spend };
+}
+
+function firstSentence(s: string, max = 90) {
+  const one = s.split(/(?<=[.;])\s+/)[0] ?? s;
+  return one.length > max ? `${one.slice(0, max - 1).trimEnd()}…` : one;
+}
+
+// "Key case facts" widget: straight from the matter's Clio custom fields and contacts.
+function buildFacts(fields: CustomField[], items: ItemRow[], sources: Map<string, SourceRef>): CaseFact[] {
+  const out: CaseFact[] = [];
+  const add = (label: string, name: string, format: (v: string) => string = (v) => firstSentence(v)) => {
+    const f = field(fields, name);
+    const v = text(f?.value);
+    if (f && v) out.push({ label, value: format(v), sources: fieldSource(f, sources) });
+  };
+  add("Incident", "Date of Incident", (v) => formatDate(v));
+  add("Location", "Accident Location", (v) => firstSentence(v, 48));
+  const adverse = items.filter((i) => i.kind === "contact" && /adverse/i.test(i.body ?? ""));
+  if (adverse.length > 0) {
+    out.push({
+      label: "Defendant",
+      value: adverse.map((a) => a.title).join(", "),
+      sources: adverse.map((a) => sources.get(sourceId(a))).filter((s): s is SourceRef => !!s),
+    });
+  }
+  add("Insurance", "Insurance Carrier", (v) => firstSentence(v, 48));
+  add("Claim #", "Claim Number", (v) => v.split(" ")[0]);
+  add("Liability", "Liability Assessment", (v) => firstSentence(v, 60));
+  add("Treatment", "Treatment Status", (v) => firstSentence(v, 60));
+  add("Lien", "Health Insurance or Lien Holder", (v) => firstSentence(v, 48));
+  return out;
+}
+
+// Numbers behind the "Money" widget's comparison bars.
+function buildMoney(fields: CustomField[], items: ItemRow[]): MoneyFigures {
+  const num = (name: string) => {
+    const n = Number(field(fields, name)?.value);
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  };
+  const perPerson = text(field(fields, "Policy Limits")?.value).match(/\$([\d,]+)/);
+  return {
+    caseValue: num("Estimated Case Value"),
+    specials: num("Medical Specials To Date"),
+    coverageLimit: perPerson ? Number(perPerson[1].replace(/,/g, "")) : undefined,
+    firmSpend: firmExpenses(items).spend,
+  };
+}
+
 function buildKpis(fields: CustomField[], items: ItemRow[], sources: Map<string, SourceRef>): CaseDigest["kpis"] {
   const value = field(fields, "Estimated Case Value");
   const limits = field(fields, "Policy Limits");
@@ -194,11 +251,7 @@ function buildKpis(fields: CustomField[], items: ItemRow[], sources: Map<string,
   const limitLines = text(limits?.value).split(/\n+/).filter(Boolean);
   const [limitLabel, limitAmount] = (limitLines[0] ?? "").split(/:\s*/);
 
-  const expenses = items
-    .filter((i) => i.kind === "expense")
-    .map((i) => JSON.parse(i.raw) as Raw)
-    .filter((e) => !text(e.note).startsWith("Medical treatment charges"));
-  const spend = expenses.reduce((sum, e) => sum + (Number(e.total) || Number(e.price) * Number(e.quantity || 1) || 0), 0);
+  const { expenses, spend } = firmExpenses(items);
   const expenseSource: SourceRef = {
     id: "expenses-all",
     kind: "expense",
@@ -217,7 +270,7 @@ function buildKpis(fields: CustomField[], items: ItemRow[], sources: Map<string,
 
 function buildProviders(items: ItemRow[]): Provider[] {
   const recordDocs = items.filter((i) => i.kind === "document" && (i.title ?? "").includes("medical-records")).map((i) => i.title ?? "");
-  return items
+  const providers = items
     .filter((i) => i.kind === "contact" && /provider|hospital|treating/i.test(i.body ?? ""))
     .map((i) => {
       const contact = (JSON.parse(i.raw) as Raw).contact as Raw | undefined;
@@ -232,6 +285,11 @@ function buildProviders(items: ItemRow[]): Provider[] {
         recordsReceived: !!key && recordDocs.some((d) => (d.split("__").pop() ?? "").split("-").includes(key)),
       };
     });
+  // An individual doctor named inside a practice or facility entry ("surgeon David Capiola") has their
+  // records filed under that practice, so inherit its status instead of flagging them as missing.
+  return providers.map((p) =>
+    p.recordsReceived ? p : { ...p, recordsReceived: providers.some((o) => o !== p && o.recordsReceived && o.specialty.includes(p.name)) },
+  );
 }
 
 function buildQuests(items: ItemRow[], providers: Provider[], sources: Map<string, SourceRef>, today: string): Quest[] {
@@ -330,6 +388,8 @@ function assemble(
     comparables: [],
     injuries: facts(ai.injuries),
     kpis: buildKpis(fields, items, sources),
+    facts: buildFacts(fields, items, sources),
+    money: buildMoney(fields, items),
     lastClientContact: contactSource
       ? { date: ai.lastClientContact.date, source: contactSource }
       : { date: today, source: { id: "none", kind: "note", label: "No client contact found" } },

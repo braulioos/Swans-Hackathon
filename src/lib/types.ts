@@ -132,8 +132,24 @@ export interface CaseDigest {
   timeline: TimelineEvent[];
   quests: Quest[];
   providers: Provider[];
+  // Computed from Clio case fields in code (no AI): the "Key case facts" and "Money" widgets.
+  facts?: CaseFact[];
+  money?: MoneyFigures;
   // Logged per digest run so the submission can state a real cost per case.
   meta?: { model: string; inputTokens: number; outputTokens: number; costUsd: number };
+}
+
+export interface CaseFact {
+  label: string;
+  value: string;
+  sources: SourceRef[];
+}
+
+export interface MoneyFigures {
+  caseValue?: number;
+  coverageLimit?: number;
+  specials?: number;
+  firmSpend?: number;
 }
 
 export type ShareSection =

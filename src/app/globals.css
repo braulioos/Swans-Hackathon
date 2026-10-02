@@ -5,6 +5,19 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Scroll shadow: a soft edge appears only when a card has more content to scroll to (pure CSS). */
+.scroll-shadow {
+  background:
+    linear-gradient(#fff 30%, rgb(255 255 255 / 0)) center top,
+    linear-gradient(rgb(255 255 255 / 0), #fff 70%) center bottom,
+    radial-gradient(farthest-side at 50% 0, rgb(15 23 42 / 0.14), transparent) center top,
+    radial-gradient(farthest-side at 50% 100%, rgb(15 23 42 / 0.14), transparent) center bottom;
+  background-repeat: no-repeat;
+  background-size: 100% 32px, 100% 32px, 100% 12px, 100% 12px;
+  background-attachment: local, local, scroll, scroll;
+  scrollbar-width: thin;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
