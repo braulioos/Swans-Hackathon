@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { getAccessToken } from "@/lib/clio-auth";
 import { ClioError, clioGet, clioGetAll } from "@/lib/clio";
 
-// Ingest: copy one matter from Clio (GET only) into our SQLite `items` table.
+// Ingest: copy one matter from Clio (GET only) into our case `items` table.
 // Each row carries a content hash, so the digest step only re-reads items that actually changed.
 
 type Raw = Record<string, unknown>;
@@ -147,7 +147,7 @@ export async function syncMatter(query = "Sapini"): Promise<SyncReport> {
   report.fieldsSeen.matter = Object.keys(matter);
 
   const now = new Date().toISOString();
-  db.prepare(
+  await db.prepare(
     `INSERT INTO matters (id, display_number, description, raw, synced_at) VALUES (?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET display_number = excluded.display_number, description = excluded.description,
        raw = excluded.raw, synced_at = excluded.synced_at`,
@@ -165,13 +165,13 @@ export async function syncMatter(query = "Sapini"): Promise<SyncReport> {
     const rows = await getAllWithFallback(token, spec, matterId, report.errors);
     report.counts[spec.kind] = rows.length;
     if (rows[0]) report.fieldsSeen[spec.kind] = Object.keys(rows[0]);
-    db.transaction(() => {
+    await db.transaction(async () => {
       for (const r of rows) {
         const raw = JSON.stringify(r);
         const content_hash = hash(raw);
-        const prev = existingHash.get(spec.kind, Number(r.id)) as { content_hash: string } | undefined;
+        const prev = await existingHash.get(spec.kind, Number(r.id)) as { content_hash: string } | undefined;
         if (prev?.content_hash !== content_hash) report.changed++;
-        upsert.run({
+        await upsert.run({
           kind: spec.kind,
           clio_id: Number(r.id),
           matter_id: matterId,
@@ -189,9 +189,9 @@ export async function syncMatter(query = "Sapini"): Promise<SyncReport> {
   return finish(report);
 }
 
-function finish(report: SyncReport): SyncReport {
+async function finish(report: SyncReport): Promise<SyncReport> {
   report.finishedAt = new Date().toISOString();
-  db.prepare("INSERT INTO sync_runs (matter_id, started_at, report) VALUES (?, ?, ?)").run(
+  await db.prepare("INSERT INTO sync_runs (matter_id, started_at, report) VALUES (?, ?, ?)").run(
     report.matter?.id ?? null,
     report.startedAt,
     JSON.stringify(report),
@@ -199,7 +199,9 @@ function finish(report: SyncReport): SyncReport {
   return report;
 }
 
-export function lastSyncReport(): SyncReport | null {
-  const row = db.prepare("SELECT report FROM sync_runs ORDER BY id DESC LIMIT 1").get() as { report: string } | undefined;
+export async function lastSyncReport(): Promise<SyncReport | null> {
+  let row: { report: string } | undefined;
+  try { row = await db.prepare("SELECT report FROM sync_runs ORDER BY id DESC LIMIT 1").get() as { report: string } | undefined; }
+  catch { return null; }
   return row ? (JSON.parse(row.report) as SyncReport) : null;
 }

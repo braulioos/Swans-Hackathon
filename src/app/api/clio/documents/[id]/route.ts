@@ -6,7 +6,7 @@ import { clioDownload } from "@/lib/clio";
 // Only documents we have synced for a matter can be opened through here.
 export async function GET(_request: Request, ctx: RouteContext<"/api/clio/documents/[id]">) {
   const { id } = await ctx.params;
-  const known = db.prepare("SELECT title FROM items WHERE kind = 'document' AND clio_id = ?").get(Number(id)) as
+  const known = await db.prepare("SELECT title FROM items WHERE kind = 'document' AND clio_id = ?").get(Number(id)) as
     | { title: string | null }
     | undefined;
   if (!known) return new Response("Unknown document", { status: 404 });

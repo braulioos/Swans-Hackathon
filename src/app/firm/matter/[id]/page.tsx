@@ -6,22 +6,30 @@ import { CaseHud } from "@/components/hud/CaseHud";
 import { NeedsAttention } from "@/components/briefing/NeedsAttention";
 import { KeyFacts, MoneyWidget } from "@/components/briefing/AtAGlance";
 import { BriefCard } from "@/components/briefing/BriefCard";
-import { SinceLastVisit } from "@/components/briefing/SinceLastVisit";
 import { InjuriesCard, ProvidersCard } from "@/components/briefing/SideCards";
 import { SimilarCases } from "@/components/briefing/SimilarCases";
 import { RecordView } from "@/components/briefing/RecordView";
 import { CaseTimeline } from "@/components/timeline/CaseTimeline";
 import { FullCaseFile } from "@/components/casefile/FullCaseFile";
+import { DocumentCopilot } from "@/components/documents/DocumentCopilot";
+import { listCaseDocuments, listFactReviews, listWorkflows } from "@/lib/document-intelligence";
+import { SettlementPanel } from "@/components/settlement/SettlementPanel";
+import { getSettlement } from "@/lib/settlement";
+import { listCaseActions } from "@/lib/case-actions";
+import { sapiniMock } from "@/lib/mock/sapini";
 
 // Firm dashboard. The first screen is everything you need in 90 seconds:
 //   header (who + stage) -> needs attention -> [key facts | money | brief] -> timeline
 // On desktop the landing area is sized to the viewport, so the timeline always sits at the bottom of the first screen.
-// Below it: what changed since your last visit, injuries, providers, and the full case file.
+// Below it: injuries, providers, and the full case file.
 export default async function MatterDashboard(props: PageProps<"/firm/matter/[id]">) {
   const { id } = await props.params;
   const { since } = await props.searchParams;
-  const digest = await getCaseDigest(id, { sinceDays: since ? Number(since) || undefined : undefined });
+  const digest = id === "sapini" ? sapiniMock : await getCaseDigest(id, { sinceDays: since ? Number(since) || undefined : undefined });
   if (!digest) notFound();
+  const [documents, workflows, facts, settlement] = id === "sapini"
+    ? [[], [], [], null] as [Awaited<ReturnType<typeof listCaseDocuments>>, Awaited<ReturnType<typeof listWorkflows>>, Awaited<ReturnType<typeof listFactReviews>>, Awaited<ReturnType<typeof getSettlement>>]
+    : await Promise.all([listCaseDocuments(digest), listWorkflows(digest.matterId), listFactReviews(digest.matterId), getSettlement(digest.matterId)]);
 
   return (
     <SourceProvider>
@@ -52,20 +60,17 @@ export default async function MatterDashboard(props: PageProps<"/firm/matter/[id
         </div>
 
         <a href="#more" className="mx-auto mb-3 flex w-fit items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-blue-700">
-          <ArrowDown className="size-3.5" /> More below: what changed, injuries, providers and the full case file
+          <ArrowDown className="size-3.5" /> More below: injuries, providers and the full case file
         </a>
 
-        <div id="more" className="grid scroll-mt-20 gap-6 pb-2 lg:grid-cols-3">
-          <div className="space-y-6 lg:col-span-2">
-            <SinceLastVisit digest={digest} />
-            {digest.comparables.length > 0 && <SimilarCases cases={digest.comparables} />}
-          </div>
-          <aside className="space-y-6">
-            <InjuriesCard digest={digest} />
-            <ProvidersCard digest={digest} />
-          </aside>
+        <div id="more" className="grid scroll-mt-20 items-stretch gap-6 pb-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+          <InjuriesCard digest={digest} />
+          <ProvidersCard digest={digest} />
         </div>
+        {digest.comparables.length > 0 && <div className="pb-2"><SimilarCases cases={digest.comparables} /></div>}
       </main>
+      <DocumentCopilot matterId={digest.matterId} providers={digest.providers} suggestedActions={listCaseActions(digest)} initialDocuments={documents} initialWorkflows={workflows} initialFacts={facts} />
+      <div className="mx-auto mt-6 w-full max-w-[1400px] px-4"><SettlementPanel matterId={digest.matterId} initialSettlement={settlement} /></div>
       <FullCaseFile digest={digest} />
     </SourceProvider>
   );

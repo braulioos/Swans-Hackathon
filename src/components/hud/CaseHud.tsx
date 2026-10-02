@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { ArrowLeft, FolderOpen, Share2 } from "lucide-react";
+import { ArrowLeft, FolderOpen, Share2, Sparkles } from "lucide-react";
 import type { CaseDigest } from "@/lib/types";
 import { daysBetween, formatDate } from "@/lib/format";
 import { StageTrack } from "@/components/hud/StageTrack";
+import { Brand } from "@/components/Brand";
 
 // Pinned identity bar: who the client is, where the case is in its journey, and the two main actions.
 // Money and urgent items live in the Money and Needs attention widgets right below.
@@ -13,6 +14,7 @@ export function CaseHud({ digest }: { digest: CaseDigest }) {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5">
+        <Brand className="text-sm" />
         <Link href="/firm" className="rounded p-1 text-slate-500 hover:bg-slate-100" aria-label="Back to all matters" title="Back to all matters">
           <ArrowLeft className="size-4" />
         </Link>
@@ -35,6 +37,7 @@ export function CaseHud({ digest }: { digest: CaseDigest }) {
           <StageTrack stage={digest.stage} />
         </div>
         <nav className="flex items-stretch gap-2" aria-label="Case actions">
+          <a href="#document-copilot" className="flex flex-col justify-center rounded-lg bg-indigo-50 px-3 py-1 text-left text-indigo-800 ring-1 ring-indigo-200 transition hover:bg-indigo-100"><span className="flex items-center gap-1.5 text-sm font-semibold"><Sparkles className="size-4" /> Find documents</span><span className="text-[11px]">Ask AI · scan · act</span></a>
           <a
             href="#case-file"
             className="flex flex-col justify-center rounded-lg bg-white px-3 py-1 text-left ring-1 ring-slate-300 transition hover:bg-slate-50 hover:ring-slate-400"

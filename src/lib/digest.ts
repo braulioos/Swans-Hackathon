@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import type { CaseDigest, CaseFact, Fact, Kpi, MoneyFigures, NextMove, Provider, Quest, SourceRef, Stage, TimelineEvent } from "@/lib/types";
 import { formatDate } from "@/lib/format";
 
-// Digest pipeline: synced Clio items (SQLite) -> one Claude call -> validated CaseDigest -> SQLite.
+// Digest pipeline: synced Clio items -> one Claude call -> validated CaseDigest -> case store.
 // Numbers that exist as data (KPIs, tasks, providers) are computed in code, not by the model.
 // The model writes the story (brief, timeline, next moves, injuries) and must cite item IDs;
 // any sentence whose citations don't resolve to a real item is dropped.
@@ -99,11 +99,11 @@ function sourceKind(row: ItemRow): SourceRef["kind"] {
   return row.kind as SourceRef["kind"];
 }
 
-function loadInputs(matterId: number) {
-  const matterRow = db.prepare("SELECT raw FROM matters WHERE id = ?").get(matterId) as { raw: string } | undefined;
+async function loadInputs(matterId: number) {
+  const matterRow = await db.prepare("SELECT raw FROM matters WHERE id = ?").get(matterId) as { raw: string } | undefined;
   if (!matterRow) throw new Error(`Matter ${matterId} has not been synced`);
   const matter = JSON.parse(matterRow.raw) as Raw;
-  const items = db
+  const items = await db
     .prepare("SELECT kind, clio_id, date, title, body, raw, content_hash FROM items WHERE matter_id = ? ORDER BY date, kind, clio_id")
     .all(matterId) as ItemRow[];
   const fields = ((matter.custom_field_values as CustomField[] | undefined) ?? []).filter((f) => f.field_name);
@@ -414,13 +414,13 @@ export interface DigestResult {
 }
 
 export async function ensureDigest(matterId: number): Promise<DigestResult> {
-  const { matter, items, fields } = loadInputs(matterId);
+  const { matter, items, fields } = await loadInputs(matterId);
   const key = inputHash(matter, items);
 
-  const latest = db
+  const latest = await db
     .prepare("SELECT version, input_hash FROM digests WHERE matter_id = ? ORDER BY version DESC LIMIT 1")
     .get(matterId) as { version: number; input_hash: string } | undefined;
-  const cached = latest?.input_hash === key ? latestDigest(matterId) : null;
+  const cached = latest?.input_hash === key ? await latestDigest(matterId) : null;
   if (cached) return { digest: cached, reused: true };
 
   const today = new Date().toISOString().slice(0, 10);
@@ -432,23 +432,27 @@ export async function ensureDigest(matterId: number): Promise<DigestResult> {
     digestedAt: new Date().toISOString(),
   };
 
-  db.prepare("INSERT INTO digests (matter_id, version, input_hash, json, created_at) VALUES (?, ?, ?, ?, ?)").run(
-    matterId,
-    (latest?.version ?? 0) + 1,
-    key,
-    JSON.stringify(stored),
-    stored.digestedAt,
-  );
-  return { digest: latestDigest(matterId)!, reused: false };
+  // Two sync requests may finish the same Claude call at once. Recheck inside the write transaction
+  // so the later request reuses the first result instead of colliding on the version key.
+  const inserted = await db.transaction(async () => {
+    const current = await db.prepare("SELECT version, input_hash FROM digests WHERE matter_id = ? ORDER BY version DESC LIMIT 1")
+      .get(matterId) as { version: number; input_hash: string } | undefined;
+    if (current?.input_hash === key) return false;
+    await db.prepare("INSERT INTO digests (matter_id, version, input_hash, json, created_at) VALUES (?, ?, ?, ?, ?)").run(
+      matterId, (current?.version ?? 0) + 1, key, JSON.stringify(stored), stored.digestedAt,
+    );
+    return true;
+  })();
+  return { digest: (await latestDigest(matterId))!, reused: !inserted };
 }
 
-export function latestDigest(matterId: number): CaseDigest | null {
-  const row = db.prepare("SELECT json FROM digests WHERE matter_id = ? ORDER BY version DESC LIMIT 1").get(matterId) as
+export async function latestDigest(matterId: number): Promise<CaseDigest | null> {
+  const row = await db.prepare("SELECT json FROM digests WHERE matter_id = ? ORDER BY version DESC LIMIT 1").get(matterId) as
     | { json: string }
     | undefined;
   if (!row) return null;
   const stored = JSON.parse(row.json) as StoredDigest;
   if (!stored.ai) return null;
-  const { matter, items, fields } = loadInputs(matterId);
+  const { matter, items, fields } = await loadInputs(matterId);
   return assemble(matterId, matter, items, fields, stored.ai, stored.meta, stored.digestedAt);
 }

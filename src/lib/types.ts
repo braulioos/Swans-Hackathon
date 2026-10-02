@@ -191,4 +191,5 @@ export interface SharePacket {
   otherProviders?: { name: string; specialty: string; recordsReceived: boolean }[];
   noteToProvider?: string;
   updatedAt: string;
+  settlementNotice?: { settledOn: string; amount?: string; message: string };
 }

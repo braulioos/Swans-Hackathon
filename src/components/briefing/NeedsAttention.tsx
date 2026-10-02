@@ -7,7 +7,7 @@ const TONE: Record<AlertTone, string> = { urgent: "text-red-700", soon: "text-am
 
 // The one place for "what do I act on": overdue tasks, the next deadline, what others owe the firm,
 // client contact and missing records. Big value first, one line of context (click it for the source),
-// and a labeled link to the full list.
+// and a labeled link to the matching assistant workflow.
 export function NeedsAttention({ digest }: { digest: CaseDigest }) {
   const alerts = buildAlerts(digest);
 
@@ -29,7 +29,7 @@ export function NeedsAttention({ digest }: { digest: CaseDigest }) {
         <h2 id="h-attn" className="text-base font-semibold text-slate-900">
           Needs attention
         </h2>
-        <p className="text-xs text-slate-600">Act on these first. From your Clio tasks, calendar &amp; contacts.</p>
+        <p className="text-xs text-slate-600">Open a matching AI workflow for each item.</p>
       </div>
       <div className="grid flex-1 grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2 xl:grid-cols-[repeat(auto-fit,minmax(220px,1fr))]">
         {alerts.map((a) => (

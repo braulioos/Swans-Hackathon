@@ -15,9 +15,9 @@ export async function POST(request: Request) {
     hiddenEventIds: body.hiddenEventIds ?? [],
     noteToProvider: body.noteToProvider ?? "",
   };
-  db.prepare("INSERT INTO shares (token, matter_id, config, created_at) VALUES (?, ?, ?, ?)").run(
+  await db.prepare("INSERT INTO shares (token, matter_id, config, created_at) VALUES (?, ?, ?, ?)").run(
     token,
-    Number(body.matterId),
+    String(body.matterId),
     JSON.stringify(config),
     new Date().toISOString(),
   );

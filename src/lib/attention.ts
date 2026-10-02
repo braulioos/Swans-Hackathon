@@ -34,8 +34,8 @@ export function buildAlerts(d: CaseDigest, today = new Date().toISOString().slic
       kind: overdue.length > 1 ? "Overdue tasks" : "Overdue task",
       big: overdue.length > 1 ? `${overdue.length} overdue` : `${late} day${late === 1 ? "" : "s"} late`,
       label: first.title,
-      cta: "Open task list",
-      href: "#case-file-tasks",
+      cta: "Prepare workflow",
+      href: "#one-click-workflows",
       source: first.sources[0],
     });
   }
@@ -51,8 +51,8 @@ export function buildAlerts(d: CaseDigest, today = new Date().toISOString().slic
       kind: "Next deadline",
       big: inDays <= 0 ? "Today" : `${inDays} day${inDays === 1 ? "" : "s"}`,
       label: `${next.title} (due ${formatDate(next.due)})`,
-      cta: "Open task list",
-      href: "#case-file-tasks",
+      cta: "Prepare workflow",
+      href: "#one-click-workflows",
       source: next.sources[0],
     });
   }
@@ -66,8 +66,8 @@ export function buildAlerts(d: CaseDigest, today = new Date().toISOString().slic
       kind: "Owed to the firm",
       big: `${waiting.length} waiting`,
       label: `Records or bills from ${names[0]}${names.length > 1 ? ` + ${names.length - 1} more` : ""}`,
-      cta: "See what they owe",
-      href: "#case-file-tasks",
+      cta: "Prepare follow-up",
+      href: "#one-click-workflows",
       source: waiting[0].sources[0],
     });
   }
@@ -80,8 +80,8 @@ export function buildAlerts(d: CaseDigest, today = new Date().toISOString().slic
       kind: "Client contact",
       big: `${contactDays} days`,
       label: "Since anyone last talked to the client",
-      cta: "See key facts",
-      href: "#facts",
+      cta: "Prepare outreach",
+      href: "#one-click-workflows",
       source: d.lastClientContact.source,
     });
   }
@@ -94,8 +94,8 @@ export function buildAlerts(d: CaseDigest, today = new Date().toISOString().slic
       kind: "Missing records",
       big: `${missing.length} provider${missing.length === 1 ? "" : "s"}`,
       label: `No records yet from ${missing[0].name}${missing.length > 1 ? ` + ${missing.length - 1} more` : ""}`,
-      cta: "See providers",
-      href: "#providers",
+      cta: "Request records",
+      href: "#record-requests",
     });
   }
 

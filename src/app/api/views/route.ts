@@ -4,6 +4,6 @@ import { recordMatterView } from "@/lib/data";
 export async function POST(request: Request) {
   const { matterId } = (await request.json()) as { matterId?: string };
   if (!matterId) return new Response("matterId required", { status: 400 });
-  if (process.env.DATA_SOURCE === "clio") recordMatterView(matterId);
+  await recordMatterView(matterId);
   return new Response(null, { status: 204 });
 }

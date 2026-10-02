@@ -16,7 +16,7 @@ export function FullCaseFile({ digest }: { digest: CaseDigest }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("Events");
 
-  // "#case-file" opens it; "#case-file-tasks" (from the Needs attention links) opens it on the Tasks tab.
+  // "#case-file" opens it; "#case-file-tasks" opens it on the Tasks tab.
   useEffect(() => {
     const sync = () => {
       const hash = window.location.hash;
@@ -108,6 +108,7 @@ export function FullCaseFile({ digest }: { digest: CaseDigest }) {
                       <td className="py-2 text-slate-600">{q.waitingOn ?? q.owner}</td>
                       <td className="py-2 text-xs text-slate-500">{q.due ? formatDate(q.due) : "—"}</td>
                       <td className="py-2 pl-3 text-right"><Sources sources={q.sources} /></td>
+                      <td className="py-2 pl-3 text-right"><a href="#one-click-workflows" className="whitespace-nowrap text-xs font-semibold text-blue-700 hover:underline">Prepare workflow</a></td>
                     </tr>
                   ))}
                 </tbody>

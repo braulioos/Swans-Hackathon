@@ -1,0 +1,11 @@
+DEMONSTRATION DOCUMENT — GENERATED FROM THE EXISTING SAPINI MOCK CASE
+This is not an original provider record and should not be used as legal evidence.
+
+Harbor Physical Therapy — sample response for the document scanning demonstration
+Patient: Sapini (mock case)
+
+The case fixture records 46 physical therapy visits attended and 4 missed. It lists the last visit as November 1, 2025 and a billed amount of $12,450. The fixture also records that the firm requested a lien reduction on September 30, 2026.
+
+This sample response does not state that a lien reduction was approved or that the balance changed. Please contact the provider billing office for an updated itemized bill and a written response to the pending lien reduction request before finalizing settlement figures.
+
+Demo purpose: show AI extraction of requests, comparison with the existing case facts, and creation of a reviewable contact draft.

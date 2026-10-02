@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Briefcase, Stethoscope } from "lucide-react";
+import { Brand } from "@/components/Brand";
 
 // Character select: two choices only (Hick's law), each opens its own panel.
 // Picking "provider" shows nothing by itself; a share code or link is still required.
@@ -24,7 +25,7 @@ export default function RoleSelect() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-10 px-4 py-16">
       <div className="text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-700">Case Digest</p>
+        <Brand className="justify-center text-sm" />
         <h1 className="mt-2 text-3xl font-semibold text-slate-900 sm:text-4xl">Who&apos;s checking in?</h1>
         <p className="mt-2 text-slate-600">Pick your side. You can switch any time.</p>
       </div>

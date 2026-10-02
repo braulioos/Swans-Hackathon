@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { KeyRound } from "lucide-react";
+import { Brand } from "@/components/Brand";
 
 export default function ProviderEntry() {
   const router = useRouter();
@@ -12,7 +13,8 @@ export default function ProviderEntry() {
   return (
     <main className="flex flex-1 items-center justify-center px-4 py-16">
       <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-        <Link href="/" className="text-sm text-slate-500 hover:underline">
+        <div><Brand className="mb-5 text-base" /></div>
+        <Link href="/" className="block text-sm text-slate-500 hover:underline">
           ← Switch role
         </Link>
         <span className="mt-4 grid size-12 place-items-center rounded-2xl bg-blue-50 text-blue-700">

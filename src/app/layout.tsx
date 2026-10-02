@@ -13,8 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Case Digest",
-  description: "Get up to speed on a personal-injury case in 90 seconds.",
+  title: "Briefly",
+  description: "Briefly keeps case intake, documents, and provider requests moving.",
+  icons: { icon: "/icon.svg", shortcut: "/icon.svg" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -9,7 +9,7 @@ export default async function SharePage(props: PageProps<"/firm/matter/[id]/shar
   if (!digest) notFound();
 
   const existing = await listShares(id);
-  const initial = process.env.DATA_SOURCE === "clio" ? newShareDraft(digest) : await getShare("demo");
+  const initial = id === "sapini" ? await getShare("demo") : newShareDraft(digest);
   if (!initial) notFound();
 
   return (

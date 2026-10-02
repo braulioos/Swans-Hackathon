@@ -11,7 +11,7 @@ export function ClioStatus({ connected, report }: { connected: boolean; report: 
           <h2 className="flex items-center gap-2 font-semibold text-blue-950">
             <PlugZap className="size-4" /> Connect your Clio account
           </h2>
-          <p className="text-sm text-blue-900">Read-only access. Case Digest never changes anything in Clio.</p>
+          <p className="text-sm text-blue-900">Read-only access. Briefly never changes anything in Clio.</p>
         </div>
         <a href="/auth/clio/login" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
           Connect Clio

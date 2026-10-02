@@ -7,7 +7,7 @@ import { Sources } from "@/components/source/SourceChip";
 // "Somewhere in a 200-page scan are my client's primary injuries."
 export function InjuriesCard({ digest }: { digest: CaseDigest }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="h-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="text-base font-semibold text-slate-900">Primary injuries</h2>
       <p className="text-xs text-slate-500">Most serious first, pulled from notes and medical records.</p>
       <ul className="mt-2 space-y-1.5">
@@ -24,7 +24,7 @@ export function InjuriesCard({ digest }: { digest: CaseDigest }) {
 
 export function ProvidersCard({ digest }: { digest: CaseDigest }) {
   return (
-    <section id="providers" className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section id="providers" className="h-full scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="text-base font-semibold text-slate-900">Treating providers</h2>
       <p className="text-xs text-slate-500">Who is treating the client, and whether the firm has their records.</p>
       <ul className="mt-2 divide-y divide-slate-100">

@@ -16,9 +16,9 @@ interface TokenRow {
   expires_at: number;
 }
 
-export function saveTokens(t: TokenResponse) {
-  const existing = db.prepare("SELECT refresh_token FROM clio_tokens WHERE id = 1").get() as { refresh_token: string | null } | undefined;
-  db.prepare(
+export async function saveTokens(t: TokenResponse) {
+  const existing = await db.prepare("SELECT refresh_token FROM clio_tokens WHERE id = 1").get() as { refresh_token: string | null } | undefined;
+  await db.prepare(
     `INSERT INTO clio_tokens (id, access_token, refresh_token, expires_at, updated_at)
      VALUES (1, @access_token, @refresh_token, @expires_at, @updated_at)
      ON CONFLICT(id) DO UPDATE SET access_token = excluded.access_token, refresh_token = excluded.refresh_token,
@@ -31,8 +31,9 @@ export function saveTokens(t: TokenResponse) {
   });
 }
 
-export function isClioConnected(): boolean {
-  return !!db.prepare("SELECT 1 FROM clio_tokens WHERE id = 1").get();
+export async function isClioConnected(): Promise<boolean> {
+  try { return !!(await db.prepare("SELECT 1 FROM clio_tokens WHERE id = 1").get()); }
+  catch { return false; }
 }
 
 export async function exchangeToken(params: Record<string, string>): Promise<TokenResponse> {
@@ -51,11 +52,11 @@ export async function exchangeToken(params: Record<string, string>): Promise<Tok
 
 // Returns a valid access token, refreshing it if it expires within a minute. Null if never connected.
 export async function getAccessToken(): Promise<string | null> {
-  const row = db.prepare("SELECT access_token, refresh_token, expires_at FROM clio_tokens WHERE id = 1").get() as TokenRow | undefined;
+  const row = await db.prepare("SELECT access_token, refresh_token, expires_at FROM clio_tokens WHERE id = 1").get() as TokenRow | undefined;
   if (!row) return null;
   if (row.expires_at - 60_000 > Date.now()) return row.access_token;
   if (!row.refresh_token) return null;
   const fresh = await exchangeToken({ grant_type: "refresh_token", refresh_token: row.refresh_token });
-  saveTokens(fresh);
+  await saveTokens(fresh);
   return fresh.access_token;
 }

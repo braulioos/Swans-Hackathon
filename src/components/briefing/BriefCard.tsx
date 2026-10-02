@@ -1,4 +1,3 @@
-import { ArrowDown } from "lucide-react";
 import type { CaseDigest } from "@/lib/types";
 import { formatDate } from "@/lib/format";
 import { Sources } from "@/components/source/SourceChip";
@@ -10,7 +9,6 @@ const LEADS = ["What happened", "Injuries", "Liability & coverage", "Where it st
 export function BriefCard({ digest }: { digest: CaseDigest }) {
   const bullets = digest.summary.slice(0, 5);
   const labeled = bullets.length === LEADS.length;
-  const newCount = digest.timeline.filter((e) => e.date > digest.lastViewedAt.slice(0, 10)).length;
 
   return (
     <section className="flex min-h-0 flex-col rounded-2xl border border-slate-200 bg-white px-4 pb-2.5 pt-3.5 shadow-sm" aria-label="Case summary">
@@ -33,13 +31,8 @@ export function BriefCard({ digest }: { digest: CaseDigest }) {
         </ul>
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-slate-100 pt-2 text-xs text-slate-500">
+      <div className="mt-2 border-t border-slate-100 pt-2 text-xs text-slate-500">
         <span>AI summary, {formatDate(digest.digestedAt)} · blue tags = sources, click one to read the original</span>
-        {newCount > 0 && (
-          <a href="#changes" className="inline-flex items-center gap-1 font-semibold text-blue-700 hover:underline">
-            See the {newCount} updates since your last visit <ArrowDown className="size-3" />
-          </a>
-        )}
       </div>
     </section>
   );

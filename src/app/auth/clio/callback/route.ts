@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   jar.delete("clio_oauth_state");
 
   try {
-    saveTokens(
+    await saveTokens(
       await exchangeToken({
         grant_type: "authorization_code",
         code,

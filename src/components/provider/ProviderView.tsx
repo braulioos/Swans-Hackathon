@@ -4,6 +4,7 @@ import type { SharePacket } from "@/lib/types";
 import { formatDate, formatMoney } from "@/lib/format";
 import { StageTrack } from "@/components/hud/StageTrack";
 import { CaseTimeline } from "@/components/timeline/CaseTimeline";
+import { Brand } from "@/components/Brand";
 
 // What a medical provider sees. Renders ONLY the SharePacket, never the CaseDigest.
 // Used by /share/[token] (real) and by the share builder preview (attorney's "view as provider").
@@ -11,6 +12,7 @@ export function ProviderView({ packet }: { packet: SharePacket }) {
   return (
     <div className="space-y-4">
       <header className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <Brand className="mb-3 text-sm" />
         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
           {packet.firmName} · shared with {packet.providerName}
         </p>
@@ -23,7 +25,7 @@ export function ProviderView({ packet }: { packet: SharePacket }) {
               }`}
             >
               {packet.caseAlive ? <CircleCheck className="size-4" /> : <CircleX className="size-4" />}
-              {packet.caseAlive ? "Case is active" : "Case is closed"}
+              {packet.settlementNotice ? "Case is settled" : packet.caseAlive ? "Case is active" : "Case is closed"}
             </span>
           )}
         </div>
@@ -53,6 +55,8 @@ export function ProviderView({ packet }: { packet: SharePacket }) {
           )}
         </div>
       </header>
+
+      {packet.settlementNotice && <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5"><h2 className="text-base font-semibold text-slate-900">Settlement update</h2><p className="mt-1 text-sm text-slate-800">{packet.settlementNotice.message}</p>{packet.settlementNotice.amount && <p className="mt-2 text-sm font-semibold text-slate-900">Gross settlement: {packet.settlementNotice.amount}</p>}<p className="mt-2 text-xs text-slate-600">Please send your final balance and lien information. The firm will confirm any payment after reconciliation.</p></section>}
 
       {packet.noteToProvider && (
         <p className="rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-900">
